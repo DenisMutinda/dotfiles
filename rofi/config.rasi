@@ -1,0 +1,12 @@
+/*Dracula theme based on the Purple official rofi theme*/
+
+configuration {
+    font: "CodeNewRoman Nerd Font 14";
+    show-icons: true;
+    drun-display-format: "{name}";
+    sidebar-mode: false;
+    theme: "simonvic_fullscreen";
+    display-window: "Window";
+    display-drun: "Launch";
+}
+
