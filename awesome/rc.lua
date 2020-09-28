@@ -232,7 +232,8 @@ globalkeys = gears.table.join(
 
 -- {{{ Custom Keys
 
-    awful.key({ }, "Print", function () awful.util.spawn("scrot -e -q 100 -z 'mv $f ~/Pictures/screenshots/ 2>/dev/null'", false) end),
+    -- awful.key({ }, "Print", function () awful.util.spawn("scrot -e -q 100 -z 'mv $f ~/Pictures/screenshots/ 2>/dev/null'", false) end),
+    awful.key({ }, "Print", function () awful.util.spawn("scrot -e -q 100 -z 'mv $f ~/Pictures/screenshots/'", false) end),
 
     -- Media keys
     awful.key({ }, "XF86AudioRaiseVolume", function () awful.util.spawn("amixer set Master 5%+") end),
