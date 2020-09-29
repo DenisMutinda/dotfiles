@@ -232,6 +232,13 @@ globalkeys = gears.table.join(
 
 -- {{{ Custom Keys
 
+awful.key({ modkey }, "F1", function()
+    local s = awful.screen.focused()
+    s.start_screen.visible = not s.start_screen.visible
+  end,
+  { description = "show or toggle start_screen", group = "awesome" }),
+
+
     awful.key({ }, "Print", function () awful.util.spawn("scrot -q 100 -z -e 'mv $f ~/Pictures/screenshots/'") end),
 
     -- Media keys

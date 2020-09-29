@@ -1,0 +1,37 @@
+#!/bin/sh
+
+i3lock \
+    --color=282828 \
+    --insidecolor=282828FF \
+    --insidevercolor=FABD2FFF \
+    --insidewrongcolor=FB4934FF \
+    --ringcolor=282828FF \
+    --ringvercolor=282828FF \
+    --ringwrongcolor=282828FF \
+    --linecolor=EBDBB2FF \
+    --keyhlcolor=EBDBB2FF \
+    --bshlcolor=FB4934FF \
+    --separatorcolor=282828FF \
+    --verifcolor=00000000 \
+    --wrongcolor=00000000 \
+    --layoutcolor=00000000 \
+    --timecolor=EBDBB2FF \
+    --datecolor=00000000 \
+    --indpos='x+100:y+720' \
+    --timepos='x+280:y+732' \
+    --timestr='%H:%M:%S' \
+    --time-font='monospace' \
+    --timesize=32 \
+    --radius=32 \
+    --ring-width=4 \
+    --greetertext='' \
+    --veriftext='' \
+    --wrongtext='' \
+    --noinputtext='' \
+    --locktext='' \
+    --lockfailedtext='' \
+    --indicator \
+    --ignore-empty-password \
+    --pass-media-keys \
+    --force-clock \
+    --blur 5
