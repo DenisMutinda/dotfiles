@@ -8,6 +8,12 @@ local awful = require("awful")
 require("awful.autofocus")
 -- Widget and layout library
 local wibox = require("wibox")
+
+-- Vicious
+vicious = require("vicious")
+local batteryarc_widget = require("batteryarc-widget.batteryarc")
+local sharedtags = require("sharedtags")
+
 -- Theme handling library
 local beautiful = require("beautiful")
 -- Notification library
@@ -106,6 +112,31 @@ menubar.utils.terminal = terminal -- Set the terminal for applications that requ
 mykeyboardlayout = awful.widget.keyboardlayout()
 
 -- {{{ Wibar
+
+-- Spacer
+  spacer = wibox.widget.textbox()
+  spacer:set_text(' | ')
+
+-- CPU usage (graph)
+  cpuwidget = awful.widget.graph()
+  cpuwidget:set_width(50)
+  cpuwidget:set_background_color("#494B4F")
+  cpuwidget:set_color({ type = "linear", from = { 0, 0 }, to = { 10,0 }, stops = { {0, "#FF5656"}, {0.5, "#88A175"}, {1, "#AECF96" }}})
+  vicious.register(cpuwidget, vicious.widgets.cpu, "$1")
+
+-- Memory widget (text)
+  tmemwidget = wibox.widget.textbox()
+  vicious.register(tmemwidget, vicious.widgets.mem, "$1% ($2MB/$3MB)", 13)
+
+-- Network usage widget
+  netwidget = wibox.widget.textbox()
+  vicious.register(netwidget, vicious.widgets.net, 'DOWN: ${wlp1s0 down_kb} UP: ${wlp1s0 up_kb}', 3)
+
+--Battery Widget
+batt = wibox.widget.textbox()
+vicious.register(batt, vicious.widgets.bat, "Batt: $2% $1 Rem: $3", 61, "BATT")
+
+
 -- Create a textclock widget
 mytextclock = wibox.widget.textclock()
 
@@ -149,27 +180,11 @@ local tasklist_buttons = gears.table.join(
                                               awful.client.focus.byidx(-1)
                                           end))
 
---local function set_wallpaper(s)
---    -- Wallpaper
---    if beautiful.wallpaper then
---        local wallpaper = beautiful.wallpaper
---        -- If wallpaper is a function, call it with the screen
---        if type(wallpaper) == "function" then
---            wallpaper = wallpaper(s)
---        end
---        gears.wallpaper.maximized(wallpaper, s, true)
---    end
---end
-
--- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
--- screen.connect_signal("property::geometry", set_wallpaper)
 
 awful.screen.connect_for_each_screen(function(s)
-    -- Wallpaper
-   -- set_wallpaper(s)
-
     -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+    -- awful.tag({ "control", "dev", "www", "irc", "mail", "agenda", "im", "rss", "media" }, s, awful.layout.layouts[1])
+
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -184,7 +199,7 @@ awful.screen.connect_for_each_screen(function(s)
     -- Create a taglist widget
     s.mytaglist = awful.widget.taglist {
         screen  = s,
-        filter  = awful.widget.taglist.filter.all,
+        filter  = function (t) return t.selected or #t:clients() > 0 end,
         buttons = taglist_buttons
     }
 
@@ -205,15 +220,27 @@ awful.screen.connect_for_each_screen(function(s)
             layout = wibox.layout.fixed.horizontal,
             mylauncher,
             s.mytaglist,
+            s.mylayoutbox,
             s.mypromptbox,
         },
         s.mytasklist, -- Middle widget
         { -- Right widgets
             layout = wibox.layout.fixed.horizontal,
-            mykeyboardlayout,
+	    cpuwidget,
+            spacer,
+	    tmemwidget,
+            spacer,
+	    netwidget,
+            spacer,
+	    batt,
+	    spacer,
+	    batteryarc_widget({
+            	show_current_level = true,
+            	arc_thickness = 2,
+            }),
+	    spacer,
             wibox.widget.systray(),
             mytextclock,
-            s.mylayoutbox,
         },
     }
 end)
@@ -231,13 +258,6 @@ root.buttons(gears.table.join(
 globalkeys = gears.table.join(
 
 -- {{{ Custom Keys
-
-awful.key({ modkey }, "F1", function()
-    local s = awful.screen.focused()
-    s.start_screen.visible = not s.start_screen.visible
-  end,
-  { description = "show or toggle start_screen", group = "awesome" }),
-
 
     awful.key({ }, "Print", function () awful.util.spawn("scrot -q 100 -z -e 'mv $f ~/Pictures/screenshots/'") end),
 
@@ -396,15 +416,27 @@ clientkeys = gears.table.join(
 -- Bind all key numbers to tags.
 -- Be careful: we use keycodes to make it work on any keyboard layout.
 -- This should map on the top row of your keyboard, usually 1 to 9.
+local tags = sharedtags({
+    { name = "main", layout = awful.layout.layouts[1] },
+    { name = "www", layout = awful.layout.layouts[2] },
+    { name = "game", layout = awful.layout.layouts[3] },
+    { name = "misc", layout = awful.layout.layouts[2] },
+    { name = "chat", screen = 2, layout = awful.layout.layouts[2] },
+    { layout = awful.layout.layouts[2] },
+    { screen = 2, layout = awful.layout.layouts[2] }
+})
+
 for i = 1, 9 do
     globalkeys = gears.table.join(globalkeys,
         -- View tag only.
         awful.key({ modkey }, "#" .. i + 9,
                   function ()
-                        local screen = awful.screen.focused()
-                        local tag = screen.tags[i]
-                        if tag then
-                           tag:view_only()
+                        local tag = tags[i]
+                        if #tag:clients()==0 and not tag.selected then
+                            sharedtags.viewonly(tag, awful.screen.focused())
+                        else
+                            sharedtags.viewonly(tag, tag.screen)
+                            awful.screen.focus(tag.screen)
                         end
                   end,
                   {description = "view tag #"..i, group = "tag"}),
@@ -412,9 +444,9 @@ for i = 1, 9 do
         awful.key({ modkey, "Control" }, "#" .. i + 9,
                   function ()
                       local screen = awful.screen.focused()
-                      local tag = screen.tags[i]
+                      local tag = tags[i]
                       if tag then
-                         awful.tag.viewtoggle(tag)
+                         sharedtags.viewtoggle(tag, screen)
                       end
                   end,
                   {description = "toggle tag #" .. i, group = "tag"}),
@@ -422,7 +454,7 @@ for i = 1, 9 do
         awful.key({ modkey, "Shift" }, "#" .. i + 9,
                   function ()
                       if client.focus then
-                          local tag = client.focus.screen.tags[i]
+                          local tag = tags[i]
                           if tag then
                               client.focus:move_to_tag(tag)
                           end
@@ -433,7 +465,7 @@ for i = 1, 9 do
         awful.key({ modkey, "Control", "Shift" }, "#" .. i + 9,
                   function ()
                       if client.focus then
-                          local tag = client.focus.screen.tags[i]
+                          local tag = tags[i]
                           if tag then
                               client.focus:toggle_tag(tag)
                           end
@@ -442,6 +474,8 @@ for i = 1, 9 do
                   {description = "toggle focused client on tag #" .. i, group = "tag"})
     )
 end
+
+
 
 clientbuttons = gears.table.join(
     awful.button({ }, 1, function (c)
@@ -492,6 +526,7 @@ awful.rules.rules = {
           "MessageWin",  -- kalarm.
           "Sxiv",
           "Tor Browser", -- Needs a fixed window size to avoid fingerprinting by screen size.
+	 -- "zoom",
           "Wpa_gui",
           "veromix",
           "xtightvncviewer"},
@@ -513,10 +548,11 @@ awful.rules.rules = {
       }, properties = { titlebars_enabled = false }
     },
 
-    -- Set Firefox to always map on the tag named "2" on screen 1.
-    -- { rule = { class = "Firefox" },
-    --   properties = { screen = 1, tag = "2" } },
-}
+    -- Set Firefox to always map on the tag named "dev" on screen 1.
+    { rule = { class = "Alacritty", },
+       properties = { screen = 1, tag = "dev" }
+    },
+},
 -- }}}
 
 -- {{{ Signals
